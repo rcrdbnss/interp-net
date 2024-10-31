@@ -63,11 +63,12 @@ if __name__ == '__main__':
     x_train, x_valid, x_test = Xy_dict['X_train'], Xy_dict['X_valid'], Xy_dict['X_test']
     y_train, y_valid, y_test = Xy_dict['y_train'], Xy_dict['y_valid'], Xy_dict['y_test']
 
-    hours_look_ahead = 96
-    ref_points = 96
+    hours_look_ahead = num_past
+    ref_points = num_past
 
     earlystop = tf.keras.callbacks.EarlyStopping(
-        monitor='val_loss', min_delta=0.0000, patience=20, verbose=0)
+        monitor='val_loss', min_delta=0.0000, patience=20, mode='min', verbose=1, restore_best_weights=True
+    )
     callbacks_list = [earlystop]
 
     model, history = model_step(x_train, x_valid, y_train, y_valid,
