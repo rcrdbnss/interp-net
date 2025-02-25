@@ -1,10 +1,10 @@
 import pickle
-from typing import Dict
 
 import numpy as np
 from sklearn import metrics
+import tensorflow as tf
 
-from mvar import hold_out
+from multivariate_example import hold_out
 
 
 def get_X_M_T(X, feat_mask):
@@ -12,11 +12,13 @@ def get_X_M_T(X, feat_mask):
         feat_mask_ = np.array(feat_mask)
         x_arg = feat_mask_ == 0
         m_arg = feat_mask_ == 1
-        T_arg = feat_mask_ == 2
-        X, M, T = X[:, :, x_arg], X[:, :, m_arg], X[:, :, T_arg]
+        # T_arg = feat_mask_ == 2
+        # X, M, T = X[:, :, x_arg], X[:, :, m_arg], X[:, :, T_arg]
+        X, M = X[:, :, x_arg], X[:, :, m_arg]
         X = np.transpose(X, (0, 2, 1))
         M = np.transpose(M, (0, 2, 1))
-        T = np.transpose(T, (0, 2, 1))
+        # T = np.transpose(T, (0, 2, 1))
+        T = np.zeros_like(X)
         return X, M, T
 
     if len(np.shape(X)) == 3:
@@ -58,8 +60,7 @@ def adapter(X, X_spt, X_exg, feat_mask, E: bool, S: bool):
     return X, M, T, no_null_window
 
 
-def load_adapt_data(base_path, dataset, subset, nan_pct, num_past, num_fut, abl_code) -> (Dict[str, np.ndarray], Dict):
-    base_path = "../ists/output/pickle"
+def load_adapt_data(base_path, dataset, subset, nan_pct, num_past, num_fut, abl_code):
     conf_name = f"{dataset}_{subset}_nan{int(nan_pct * 10)}_np{num_past}_nf{num_fut}"
     print("Loading from", f'{base_path}/{conf_name}.pickle', "...")
     with open(f'{base_path}/{conf_name}.pickle', 'rb') as f:
@@ -114,3 +115,24 @@ def evaluate_raw(X, y, id_array, model, scalers, batch_size):
                        for y_, id in zip(y_pred, id_array)])
     mse, mae = metrics.mean_squared_error(y_true, y_pred), metrics.mean_absolute_error(y_true, y_pred)
     return mse, mae
+
+
+def customloss(num_features):
+    def f(ytrue, ypred):
+        """ Autoencoder loss
+        """
+        y = ytrue[:, :num_features, :]
+        m2 = ytrue[:, 3*num_features:4*num_features, :]
+        m2 = 1 - m2
+        m1 = ytrue[:, num_features:2*num_features, :]
+        m = m1 * m2
+        ypred = ypred[:, :num_features, :]
+        x = (y - ypred) * (y - ypred)
+        x = x * m
+        count = tf.reduce_sum(m, axis=2)
+        count = tf.where(count > 0, count, tf.ones_like(count))
+        x = tf.reduce_sum(x, axis=2) / count
+        x = tf.reduce_sum(x, axis=1) / num_features
+        loss = tf.reduce_mean(x)
+        return loss
+    return f

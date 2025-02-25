@@ -3,10 +3,12 @@ import copy
 import numpy as np
 
 
-def load_data(base_path=''):
+def load_data(base_path):
     print('Loading files ...')
-    vitals = pickle.load(open(f'{base_path}vitals_records.p', 'rb'))
-    adm_info = pickle.load(open(f'{base_path}adm_type_los_mortality.p', 'rb'))
+    if base_path and not base_path.endswith("/"):
+        base_path += "/"
+    vitals = pickle.load(open(base_path + 'vitals_records.p', 'rb'))
+    adm_info = pickle.load(open(base_path + 'adm_type_los_mortality.p', 'rb'))
     print('Loading Done!')
     adm_id = [record[0] for record in adm_info]
     adm_id_needed = [record[0] for record in adm_info if record[2] >= 48]
@@ -16,8 +18,7 @@ def load_data(base_path=''):
         vitals_dict[adm_id[i]] = vitals[i]
 
     vitals = [vitals_dict[x] for x in adm_id_needed]
-    # label = [rec[3] for x in adm_id_needed for rec in adm_info if x == rec[0]]
-    label = [float(rec[2]) for x in adm_id_needed for rec in adm_info if x == rec[0]]
+    label = [rec[3] for x in adm_id_needed for rec in adm_info if x == rec[0]]
     print(len(vitals), len(label))
     return vitals, label
 
@@ -135,4 +136,3 @@ def fix_input_format(x, T):
                 delta[j, i, k] = T[j][k]
 
     return x, M, delta
-

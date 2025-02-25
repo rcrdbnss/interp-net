@@ -9,7 +9,7 @@ import keras
 from keras.models import Model
 from keras.layers import Input, Dense, GRU, Lambda, Permute
 from sklearn.preprocessing import MultiLabelBinarizer
-from interpolation_layer import single_channel_interp
+from interpolation_layer import SingleChannelInterp
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -51,11 +51,11 @@ l_test = mlb.fit_transform(l_test)
 print(x_train.shape, y_train.shape, x_test.shape,
       y_test.shape, l_train.shape, l_test.shape)
 
-# To implement the autoencoder component of the loss, we introduce a set 
-# of masking variables mr (and mr1) for each data point. If mr = 0, then we remove 
-# the data point as an input to the interpolation network, and include 
+# To implement the autoencoder component of the loss, we introduce a set
+# of masking variables mr (and mr1) for each data point. If mr = 0, then we remove
+# the data point as an input to the interpolation network, and include
 # the predicted value at this time point when assessing
-# the autoencoder loss. In practice, we randomly select 20% of the 
+# the autoencoder loss. In practice, we randomly select 20% of the
 # observed data points to hold out from
 # every input time series.
 
@@ -97,7 +97,7 @@ def customloss(ytrue, ypred):
 
 # Interpolation-Prediction Model
 main_input = Input(shape=(4*num_features, timestamp), name='input')
-sci = single_channel_interp(
+sci = SingleChannelInterp(
     ref_points, hours_look_ahead, weights=[np.array([-3.0])])
 interp = sci(main_input)
 reconst = sci(main_input, reconstruction=True)
